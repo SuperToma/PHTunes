@@ -1,0 +1,221 @@
+/******************************** Default styles ******************************/
+
+.hidden {
+    display: none;
+}
+.error, .red {
+    color: #FF0000;
+}
+.warning {
+    color: #D77D00;
+}
+.ok, .green {
+    color: #005500;
+}
+body {
+    padding: 0;
+    margin: 0;
+}
+.songName a {
+    margin-right: 20px;
+}
+li.songName .artist {
+    display: none;
+}
+#rightPanel {
+    background: rgba(0,0,0,.5);
+}
+#footer {
+    opacity: 0.94;
+}
+#playerContent {
+    padding: 60px 0 60px 0;
+}
+.playBar .seekBar {
+    position: absolute;
+    top: 0;
+    margin-left: 0 !important;
+    border: none;
+}
+.ui-input-search {
+    display: inline-block !important;
+    margin: 1px 0 0 10px!important;
+    width: 100px;
+}
+.jp-playlist-item {
+    font-size: 14px;
+    text-decoration: none;
+    color: #000000;
+    text-shadow: none;
+}
+.jp-playlist li.jp-playlist-current {
+    background: linear-gradient(#C0A366, #FFDC8B) repeat scroll 0 0;
+}
+.jp-current-time, .jp-duration {
+    margin-top: 8px;
+}
+.jp-current-time {
+    float: left;
+}
+.jp-duration {
+    float: right;
+}
+#artists {
+    max-width: 820px;
+    margin: 0 auto 0 auto;
+}
+/* First breakpoint is 768px. 3 column layout. Tiles 250x250 pixels at the breakpoint. */
+@media all{
+    #covers.ui-listview .ui-li.ui-btn {
+        width: 128px;
+        height: 128px;
+        margin: 10px 1%;
+        float: left;
+        border-width: 0; /* The 1px border would break the layout so we set it on .ui-btn-inner instead. */
+    }
+    /* If you don't want a border at all, just set "border: none;" here to negate the semi white top border */
+    #covers.ui-listview .ui-li.ui-btn-inner {
+        border: inherit;
+        border-width: 1px;
+        margin: -1px;
+    }
+    #covers.ui-listview .ui-btn-inner,
+    #covers.ui-listview .ui-btn-text,
+    #covers.ui-listview .ui-link-inherit,
+    #covers.ui-listview .ui-li-thumb {
+        width: 128px;
+        height: 128px;
+        display: block;
+        overflow: hidden;
+    }
+    #covers.ui-listview .ui-link-inherit {
+        padding: 0 !important;
+        position: relative;
+    }
+    /* Inherit the border-radius from the UL that has class .ui-corner-all in case of an inset listview. */
+    #covers.ui-listview .ui-li,
+    #covers.ui-listview .ui-btn-text,
+    #covers.ui-listview .ui-link-inherit,
+    #covers.ui-listview .ui-li-thumb {
+        -webkit-border-radius: inherit;
+        border-radius: inherit;
+    }
+    #covers.ui-listview .ui-li-thumb {
+        height: auto; /* To keep aspect ratio. */
+        max-width: 100%;
+        max-height: none;
+        margin: 0;
+        left: 0;
+        z-index: -1;
+    }
+    /* Hide the icon */
+    #covers.ui-listview .ui-icon {
+        display: none;
+    }
+    /* Make text wrap. */
+    #covers.ui-listview .ui-li-heading,
+    #covers.ui-listview .ui-li-desc {
+        color: #CCCCCC;
+        text-shadow: none;
+        font-size: 0.8em;
+        text-align: center;
+        white-space: normal;
+        overflow: visible;
+        position: absolute;
+        left: 0;
+        right: 0;
+    }
+    /* Text position */
+    #covers.ui-listview .ui-li-heading {
+        margin: 0;
+        padding: 5px;
+        bottom: 0;
+    }
+    #covers.ui-listview .ui-li-desc {
+        margin: 0;
+        padding: 0 20px;
+        min-height: 50%;
+        bottom: 0;
+        line-height: 1.5;
+    }
+    /* Semi transparent background and different position if there is a thumb */
+    .ui-listview .ui-li-has-thumb .ui-li-heading,
+    .ui-listview .ui-li-has-thumb .ui-li-desc {
+        background: #111;
+        background: rgba(0,0,0,1);
+        -webkit-background-clip: padding;
+        background-clip: padding-box;
+    }
+    .ui-listview .ui-li-has-thumb .ui-li-heading {
+        padding: 10px;
+        bottom: 20%;
+    }
+    .ui-listview .ui-li-has-thumb .ui-li-desc {
+        padding: 0 10px;
+        min-height: 20%;
+        -webkit-border-bottom-left-radius: inherit;
+        border-bottom-left-radius: inherit;
+        -webkit-border-bottom-right-radius: inherit;
+        border-bottom-right-radius: inherit;
+    }
+    /* ui-li-aside has class .ui-li-desc as well so we have to override some things. */
+    #covers.ui-listview .ui-li-desc.ui-li-aside {
+        padding: 2px 10px;
+        width: auto;
+        min-height: 0;
+        top: 0;
+        left: auto;
+        bottom: auto;
+        /* Custom styling. */
+        color: #c0c0c0;
+        background: #990099;
+        background: rgba(0,0,0,.65);
+        -webkit-border-top-right-radius: inherit;
+        border-top-right-radius: inherit;
+        -webkit-border-bottom-left-radius: inherit;
+        border-bottom-left-radius: inherit;
+        -webkit-border-bottom-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    /* If you want to add shadow, don't kill the focus style. */ 
+    #covers.ui-listview .ui-btn:not(.ui-focus) {
+        -moz-box-shadow: 0px 0px 9px #111;
+        -webkit-box-shadow: 0px 0px 9px #111;
+        box-shadow: 0px 0px 9px #111;
+    }
+    /* Images mask the hover bg color so we give desktop users feedback by applying the focus style on hover as well. */
+    #covers.ui-listview .ui-btn:hover {
+        -moz-box-shadow: 0px 0px 12px #387bbe;
+        -webkit-box-shadow: 0px 0px 12px #387bbe;
+        box-shadow: 0px 0px 12px #387bbe;
+    }
+    /* Animate focus and hover style, and resizing. */ 
+    #covers.ui-listview .ui-btn {
+        -webkit-transition: all 500ms ease;
+        -moz-transition: all 500ms ease;
+        -o-transition: all 500ms ease;
+        -ms-transition: all 500ms ease;
+        transition: all 500ms ease;	
+    }
+}
+
+#search-results {
+    display: none; 
+    position: fixed; 
+    width: 300px; 
+    top: 50px; 
+    left: 6px; 
+    z-index: 10;
+}
+#footer .ui-slider-input {
+    display: none;
+}
+#footer .ui-slider {
+    margin: 0;
+}
+#footer .ui-controlgroup, fieldset.ui-controlgroup {
+    margin: 0;
+}
+#footer .ui-slider-track {
+    margin-left: 15px;
+}
