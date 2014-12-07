@@ -41,8 +41,15 @@
                   <a href="#" onclick="loadAjax('admin.php?action=add&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo 'Search new files'; ?></a>
                 | <a href="#" onclick="loadAjax('admin.php?action=clean_catalog&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo 'Clean deleted files'; ?></a>
                 | <a href="#" onclick="loadAjax('admin.php?action=full_service&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo 'FULL Update'; ?></a>
-                | <a href="#" onclick="loadAjax('admin.php?action=gather_album_art&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo _('Gather Art'); ?></a>
-                | <a href="#" onclick="if(confirm('Are you sure to delete this catalog ? (<?php echo scrub_out($catalog->name); ?>)')) { loadAjax('admin.php?action=delete_catalog&amp;form_validation=<?php echo Core::form_register('delete_catalog', 'get')?>&amp;catalog_id=<?php echo $catalog->id; ?>'); }"><?php echo _('Delete'); ?></a>
+                
+                | <strong><?php echo _('Gather Art'); ?></strong>
+                  ( 
+                    <a href="#" onclick="loadAjax('admin.php?action=gather_album_art&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo _('All'); ?></a>
+                    |
+                    <a href="#" onclick="loadAjax('admin.php?action=gather_empty_album_art&amp;catalogs[]=<?php echo $catalog->id; ?>');"><?php echo _('Empty'); ?></a>
+                   )
+                   
+                | <a href="#" onclick="if(confirm('Are you sure to delete this catalog ? (<?php echo scrub_out($catalog->name); ?>)')) { loadAjax('admin.php?action=delete_catalog&amp;form_validation=<?php echo Core::form_register('delete_catalog', 'get')?>&amp;catalog_id=<?php echo $catalog->id; ?>'); loadPage('admin.php'); }"><?php echo _('Delete'); ?></a>
                 </td>
             </tr>
         <?php

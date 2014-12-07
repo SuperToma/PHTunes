@@ -89,7 +89,7 @@ class Dba {
 					$resource = mysql_query($sql,self::dbh());
 					break;
 				default:
-					debug_event('DBH',mysql_error(self::dbh()) . ' ['. mysql_errno(self::dbh()) . ']','1');
+					debug_event('DBH',mysql_error(self::dbh()) . ' ['. mysql_errno(self::dbh()) . '] : ','1');
 					break;
 			} // end switch on error #
 		} // if failed query

@@ -20,10 +20,3 @@ switch ($_REQUEST['action']) {
         include('tpl/search.tpl.php');
     break;
 }
-
-//Artist
-
-//Albums
-
-
-//songs

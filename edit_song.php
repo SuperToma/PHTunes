@@ -11,8 +11,7 @@ $song = new Song( $_REQUEST['id'] );
 switch ($_REQUEST['action']) {
     case 'save':
         if (!Core::form_verify('edit_song', 'post')) {
-            access_denied();
-            exit;
+            die('Access denied');
         }
         
         //Delete magic quotes
@@ -48,16 +47,13 @@ switch ($_REQUEST['action']) {
                     
                     list($APIC_width, $APIC_height, $APIC_imageTypeID) = GetImageSize($_FILES['cover']['tmp_name']);
 
-                    $imagetypes = array(1=>'gif', 2=>'jpeg', 3=>'png');
+                    $imagetypes = array(1 => 'gif', 2 => 'jpeg', 3 => 'png');
                     
                     $art = new Art($albumId, 'album');
-                    $tmp = $art->insert($APICdata, 'image/'.$imagetypes[$APIC_imageTypeID]);
+                    $mimeType = 'image/'.$imagetypes[$APIC_imageTypeID];
+                    $art->insert($APICdata, $mimeType);
 
-                    if (Config::get('resize_images')) { 
-                        $thumb = $art->generate_thumb($APICdata, array('width'=>275,'height'=>275),'image/'.$imagetypes[$APIC_imageTypeID]); 
-                        if (is_array($thumb)) { $art->save_thumb($thumb['thumb'], $thumb['thumb_mime'], '275x275'); } 
-                    } 
-        
+                    Art::cleanCacheFileCoverAlbum($albumId);
                 } else {
                     echo 'cannot open '.$_FILES['userfile']['tmp_name'];
                 }
@@ -97,19 +93,24 @@ switch ($_REQUEST['action']) {
             } 
 
             if(isset($APICdata)) {
-                #TODO : Resize 300x300 max
 
-                if($APIC_width != 300) {
-                    echo 'Sorry cover width is not equal 300px ('.$APIC_width.')';
-                } elseif($APIC_height != 300) {
-                    echo 'Sorry cover height is not equal 300px ('.$APIC_height.')';
-                } elseif(!isset($imagetypes[$APIC_imageTypeID])) {
+                if(!isset($imagetypes[$APIC_imageTypeID])) {
                     echo 'invalid image format (only GIF, JPEG, PNG)';
                 } else {
-                    $TagData['attached_picture'][0]['data']          = '';//$APICdata;
+                    //Resize if cover is too big
+                    if($APIC_width > 300 || $APIC_height > 300) {
+                        
+                        $newDimensions = array( 'width' => 300, 'height' => 300);
+                        $newImage = $art->generate_thumb($APICdata, $newDimensions, $mimeType);
+                        
+                        $APICdata = $newImage['thumb'];
+                        $mimeType = $newImage['thumb_mime'];
+                    }
+                    
+                    $TagData['attached_picture'][0]['data']          = $APICdata;
                     $TagData['attached_picture'][0]['picturetypeid'] = 0x03; //Cover (front) cf. getid3_id3v2::APICPictureTypeLookup
                     $TagData['attached_picture'][0]['description']   = 'cover : '.$_FILES['cover']['name'];
-                    $TagData['attached_picture'][0]['mime']          = 'image/'.$imagetypes[$APIC_imageTypeID];
+                    $TagData['attached_picture'][0]['mime']          = $mimeType;
                 }
             }
 
@@ -119,7 +120,7 @@ switch ($_REQUEST['action']) {
                 echo 'Successfully wrote tags';
                 Catalog::check_album($_REQUEST['album']);
                 if (!empty($tagwriter->warnings)) {
-                    echo 'There were some warnings : '.implode("\n", $tagwriter->warnings).'';
+                    echo 'There were some warnings : '.implode("\n", $tagwriter->warnings);
                 }
                 Catalog::clean_albums();
             } else {

@@ -485,16 +485,18 @@ throw new Exception('$this->overwrite_tags=false is known to be buggy in this ve
 		$ID3v2_text_encoding_lookup[2] = array('ISO-8859-1'=>0, 'UTF-16'=>1);
 		$ID3v2_text_encoding_lookup[3] = array('ISO-8859-1'=>0, 'UTF-16'=>1);
 		$ID3v2_text_encoding_lookup[4] = array('ISO-8859-1'=>0, 'UTF-16'=>1, 'UTF-16BE'=>2, 'UTF-8'=>3);
+
 		foreach ($this->tag_data as $tag_key => $valuearray) {
 			$ID3v2_framename = getid3_write_id3v2::ID3v2ShortFrameNameLookup($id3v2_majorversion, $tag_key);
 			switch ($ID3v2_framename) {
 				case 'APIC':
-					foreach ($valuearray as $key => $apic_data_array) {
+					foreach ($valuearray as $key => $apic_data_array) { 
+                                        
 						if (isset($apic_data_array['data']) &&
-							isset($apic_data_array['picturetypeid']) &&
-							isset($apic_data_array['description']) &&
-							isset($apic_data_array['mime'])) {
-								$tag_data_id3v2['APIC'][] = $apic_data_array;
+                                                    isset($apic_data_array['picturetypeid']) &&
+                                                    isset($apic_data_array['description']) &&
+                                                    isset($apic_data_array['mime'])) {
+							$tag_data_id3v2['APIC'][] = $apic_data_array;
 						} else {
 							$this->errors[] = 'ID3v2 APIC data is not properly structured';
 							return false;

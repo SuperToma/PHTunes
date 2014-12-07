@@ -20,7 +20,7 @@ switch ($_REQUEST['action']) {
     break;
     
     case 'getLast':
-        $albums = Album::get_last(30);
+        $albums = Album::get_last(100);
         include('tpl/albums.tpl.php');
     break;    
 

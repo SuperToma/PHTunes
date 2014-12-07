@@ -42,14 +42,14 @@
         </div>
         <h1 id="ajax-status">PHTunes</h1>
         <div data-type="horizontal" class="ui-btn-right">  
-            <a href="#rightPanel" data-role="button" data-icon="bars" data-iconpos="notext">Current playlist</a>
+            <a href="#rightPanel" data-role="button" data-icon="bars" data-iconpos="notext" data-position-fixed="true">Current playlist</a>
         </div>
     </div>
     
     <ul id="search-results" data-role="listview" data-inset="true" data-divider-theme="d" data-theme="d"></ul>
     
     
-    <div data-role="panel" id="leftPanel" data-position="left" data-display="overlay">
+    <div data-role="panel" id="leftPanel" data-position="left" data-display="overlay" data-position-fixed="true">
         <ul data-role="listview" data-divider-theme="d" data-icon="false">
             <li data-role="list-divider">Library</li>
             <li><a href="javascript:loadPage('artists.php?action=getAll');">Artists</a></li>
@@ -70,14 +70,13 @@
     </div>
     
     
-    <div data-role="panel" id="rightPanel" data-position="right" data-display="overlay" class="jp-playlist">
+    <div data-role="panel" id="rightPanel" data-position="right" data-display="overlay" class="jp-playlist" data-position-fixed="true">
         <ul data-role="listview" data-divider-theme="d" data-icon="false" data-inset="true">
             <li></li>
         </ul>
         <br />
         <a href="#" data-rel="close" data-role="button" data-theme="a" data-icon="delete" data-inline="true" data-mini="true">Close</a>
     </div>
-
     
     <div data-role="content" id="playerContent">
         
@@ -148,7 +147,17 @@
         <div class="content" data-role="content" data-theme="d" class="ui-corner-bottom ui-content"></div>
     </div>
     
-
+    <div data-role="popup" id="popupLogin" data-theme="a" class="ui-corner-all" data-overlay-theme="a">
+        <div style="padding:10px 20px;">
+            <h3>Please log in</h3>
+            <label for="un" class="ui-hidden-accessible">Username:</label>
+            <input name="username" value="" placeholder="username" data-theme="a" type="text">
+            <label for="pw" class="ui-hidden-accessible">Password:</label>
+            <input name="password" value="" placeholder="password" data-theme="a" type="password">
+            <button type="button" data-theme="b" data-icon="check" onclick="login()">Sign in</button>
+        </div>
+    </div>
+    
 </div>
 
 </body>

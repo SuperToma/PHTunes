@@ -9,8 +9,11 @@
 .warning {
     color: #D77D00;
 }
-.ok, .green {
+.ok{
     color: #005500;
+}
+.green {
+    color: #00AA00;
 }
 body {
     padding: 0;
@@ -43,10 +46,16 @@ li.songName .artist {
     width: 100px;
 }
 .jp-playlist-item {
-    font-size: 14px;
+    font-size: 13px;
     text-decoration: none;
     color: #000000;
     text-shadow: none;
+}
+.jp-playlist .ui-panel-inner .ui-listview-inset {
+    margin: 0;
+}
+.jp-playlist .ui-li-static.ui-li {
+    padding: 1px 4px;
 }
 .jp-playlist li.jp-playlist-current {
     background: linear-gradient(#C0A366, #FFDC8B) repeat scroll 0 0;

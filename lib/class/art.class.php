@@ -424,8 +424,8 @@ class Art extends database_object {
 		ob_end_clean();
 
 		if (!strlen($data)) {
-			debug_event('Art', 'Unknown Error resizing art', 1);
-			return false;
+                    debug_event('Art', 'Unknown Error resizing art', 1);
+                    return false;
 		}
 
 		return array('thumb' => $data, 'thumb_mime' => $mime_type);
@@ -444,7 +444,7 @@ class Art extends database_object {
 	public function get_from_source($data) {
 
             // Already have the data, this often comes from id3tags
-            if (isset($data['raw'])) {
+            if (isset($data['raw']) && $data['raw'] !== false) {
                 return $data['raw'];
             }
 
@@ -486,12 +486,13 @@ class Art extends database_object {
                 // If we find a good one, stop looking
                 $getID3 = new getID3();
                 $id3 = $getID3->analyze($data['song']);
-
+                
                 if ($id3['format_name'] == "WMA") {
                     return $id3['asf']['extended_content_description_object']['content_descriptors']['13']['data'];
                 }
                 elseif (isset($id3['id3v2']['APIC'])) {
                     // Foreach incase they have more then one
+
                     foreach ($id3['id3v2']['APIC'] as $image) {
                         return $image['data'];
                     }
@@ -588,7 +589,7 @@ class Art extends database_object {
 
 		switch ($this->type) {
 			case 'album':
-				$allowed_methods = array('lastfm','folder','amazon','google','musicbrainz','tag');
+				$allowed_methods = array('lastfm','folder','amazon','google','yahoo','musicbrainz','tag');
 			break;
 			case 'artist':
 				$allowed_methods = array();
@@ -611,14 +612,15 @@ class Art extends database_object {
 		}
 
 		debug_event('Art','Searching using:' . print_r($config, true),3);
-
+                
 		foreach ($config as $method) {
 
 			$data = array();
 
-			debug_event('Art',"method used " .$method_name,3);
-
 			$method_name = "gather_" . $method;
+                        
+                        debug_event('Art',"method used ".$method_name, 3);
+                        
 			if (in_array($method_name, $methods)) {
 				// Some of these take options!
 				switch ($method_name) {
@@ -632,7 +634,7 @@ class Art extends database_object {
 							$data = $this->{$method_name}($limit, $options);
 						}
 					break;
-					default:
+                                        default:
 						if($this->checkOrderDB($method,$gatherAll)) { 
 							$data = $this->{$method_name}($limit);
 						}
@@ -968,6 +970,8 @@ class Art extends database_object {
 			'jp2',
 			'jpeg',
 			'jpg',
+                        'JPG',
+                        'JPEG',
 			'png'
 		);
 
@@ -1047,6 +1051,16 @@ class Art extends database_object {
 			// to dump the other, less sexy ones.
 			$results = $preferred;
 		}
+                
+                //Get the file containing front in her name if more than 1 file
+                if( count($results) > 1 ) {
+                    foreach($results as $key => $result) {
+                        if( stristr($result['file'], 'front') !== false) {
+                            $results = $results[$key];
+                            break;
+                        }
+                    }
+                }
 
 		debug_event('folder_art', 'Results: ' . print_r($results, true), 5);
 		if ($limit && count($results) > $limit) {
@@ -1121,28 +1135,79 @@ class Art extends database_object {
 
 		$search = $media->full_name;
 
-		if ($media->artist_count == '1')
-			$search = $media->artist_name . ', ' . $search;
+		if ($media->artist_count == '1') {
+                    $search = $media->artist_name . ', ' . $search;
+                }
 
 		$search = rawurlencode($search);
 
 		$size = '&imgsz=m'; // Medium
 		//$size = '&imgsz=l'; // Large
+                
+                $googleUrl = "http://images.google.com/images?source=hp&q=$search&oq=&um=1&ie=UTF-8&sa=N&tab=wi&start=0&tbo=1&sout=0$size";
+                debug_event('google-img', "Searching on URL : ".$googleUrl, 3);
+		$html = file_get_contents($googleUrl);
+                
+                $doc = new DOMDocument();
+                @$doc->loadHTML($html);
 
-		$html = file_get_contents("http://images.google.com/images?source=hp&q=$search&oq=&um=1&ie=UTF-8&sa=N&tab=wi&start=0&tbo=1$size");
+                $tags = $doc->getElementsByTagName('img');
 
-		if(preg_match_all("|\ssrc\=\"(http.+?)\"|", $html, $matches, PREG_PATTERN_ORDER))
-			foreach ($matches[1] as $match) {
-				$extension = "image/jpeg";
+                foreach ($tags as $tag) {
+                    $images[] = array('url' => $tag->getAttribute('src'), 'mime' => getimagesize($tag->getAttribute('src')));
+                }
+                
+		if(preg_match_all("|\shref\=\"/imgres\?imgurl\=(.+?)\&amp|", $html, $matches, PREG_PATTERN_ORDER)) {
+                    
+                    foreach ($matches[1] as $match) {
+                        $extension = "image/jpeg";
 
-				if (strrpos($extension, '.') !== false) $extension = substr($extension, strrpos($extension, '.') + 1);
-
-				$images[] = array('url' => $match, 'mime' => $extension);
-			}
+                        //if (strrpos($extension, '.') !== false) $extension = substr($extension, strrpos($extension, '.') + 1);
+                        //Only jpg files
+                        if(substr($match, -4) == '.jpg' || substr($match, -5) == '.jpeg') {
+                            $images[] = array('url' => $match, 'mime' => $extension);
+                        }
+                    }
+                }
 
 		return $images;
 
 	} // gather_google
+        
+        /**
+	 * gather_yahoo
+	 * Raw yahoo search to retrieve the art, not very reliable
+	 */
+	public function gather_yahoo($limit = 5) {
+
+		$images = array();
+		$media = new $this->type($this->uid);
+		$media->format();
+
+		$search = $media->full_name;
+
+		if ($media->artist_count == '1') {
+                    $search = $media->artist_name . ', ' . $search;
+                }
+
+		$search = rawurlencode($search);
+
+                $yahooUrl = "http://images.search.yahoo.com/search/images?p=$search&imgsz=medium";
+                debug_event('yahoo-img', "Searching on URL : ".$yahooUrl, 3);
+		$html = file_get_contents($yahooUrl);
+                
+                $doc = new DOMDocument();
+                @$doc->loadHTML($html);
+
+                $tags = $doc->getElementsByTagName('img');
+
+                foreach ($tags as $tag) {
+                    $images[] = array('url' => $tag->getAttribute('src'), 'mime' => getimagesize($tag->getAttribute('src')));
+                }
+
+		return $images;
+
+	} // gather_yahoo
 
 	/**
 	 * gather_lastfm
@@ -1181,7 +1246,7 @@ class Art extends database_object {
 
 		if (!count($raw_data)) { return array(); }
 
-		$coverart = ksort($raw_data['coverart']);
+		$coverart = $raw_data['coverart'];
 		$i = 0;
 
 		foreach ($coverart as $key => $value) {
@@ -1203,5 +1268,17 @@ class Art extends database_object {
 		return $data;
 
 	} // gather_lastfm
+        
+        public static function cleanCacheFileCoverAlbum( $albumId ) {
+            
+            if(!is_numeric($albumId)) {
+                return;
+            }
+            
+            $files = glob("cache/[0-9]*x[0-9]*/".$albumId."*.*");
+            foreach($files as $file){
+                unlink($file);
+            }
+        }
 
 } // Art

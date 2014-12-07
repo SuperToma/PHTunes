@@ -51,6 +51,7 @@ class Catalog extends database_object {
 
 	/* This is a private var that's used during catalog builds */
 	private $_playlists = array();
+        private $_songs = array();
 
 	// Cache all files in catalog for quick lookup during add
 	private $_filecache = array();
@@ -339,6 +340,26 @@ class Catalog extends database_object {
 		set_time_limit(0);
 
 		$this->add_files($this->path,$options);
+                
+                ksort($this->_songs); //Sort songs by modified time ASC
+
+                $i = 1;
+                $ticker = time();
+                foreach($this->_songs as $song_file) {
+                    
+                    $file_size = filesize($song_file);
+                    
+                    $this->insert_local_song($song_file,$file_size); 
+                    
+                    if ( (time() > $ticker+1)) {
+                        $file = str_replace(array('(',')','\''),'',$song_file);
+
+
+                        update_text('Adding file ('.$i.' / '.count($this->_songs).') : '.scrub_out($file));
+                        $ticker = time();
+                    } // update our current state
+                    $i++;
+                }
 
 		// If they have checked the box then go ahead and gather the art
 		if ($options['gather_art']) {
@@ -354,6 +375,8 @@ class Catalog extends database_object {
 			}
 		} // if we need to do some m3u-age
 
+                update_text( _('Catalog Created') );
+                
 		return true;
 
 	} // run_add
@@ -590,32 +613,40 @@ class Catalog extends database_object {
 
 				// Check to make sure the filename is of the expected charset
 				if (function_exists('iconv')) {
-					if (strcmp($full_file,iconv(Config::get('site_charset'),Config::get('site_charset'),$full_file)) != '0') {
-						debug_event('read',$full_file . ' has non-' . Config::get('site_charset') . ' characters and can not be indexed, converted filename:' . iconv(Config::get('site_charset'),Config::get('site_charset'),$full_file),'1');
-						/* HINT: FullFile */
-						Error::add('catalog_add', sprintf(_('%s does not match site charset'), $full_file));
-						continue;
-					}
+                                    if (strcmp($full_file,iconv(Config::get('site_charset'),Config::get('site_charset'),$full_file)) != '0') {
+                                        debug_event('read',$full_file . ' has non-' . Config::get('site_charset') . ' characters and can not be indexed, converted filename:' . iconv(Config::get('site_charset'),Config::get('site_charset'),$full_file),'1');
+                                        Error::add('catalog_add', sprintf(_('%s does not match site charset'), $full_file));
+                                        continue; 
+                                    }
 				} // end if iconv
 
 				if ($options['parse_m3u'] AND substr($file,-3,3) == 'm3u') {
-					$this->_playlists[] = $full_file;
+                                    $this->_playlists[] = $full_file;
 				} // if it's an m3u
 
 				else {
-					if ($is_audio_file) { $this->insert_local_song($full_file,$file_size); }
-					else { $this->insert_local_video($full_file,$file_size); }
+                                    if ($is_audio_file) { 
+                                        
+                                        $filetime = filemtime($full_file);
+                                        
+                                        //In case $filetime already exists
+                                        while( isset($this->_songs[$filetime]) ) {
+                                            $filetime++;
+                                        }
+                                        
+                                        $this->_songs[$filetime] = $full_file;
+                                        //$this->insert_local_song($full_file,$file_size); 
+                                    }
+                                    else { $this->insert_local_video($full_file,$file_size); }
 
-					$this->count++;
-					if ( (time() > $ticker+1)) {
-						$file = str_replace(array('(',')','\''),'',$full_file);
-						//update_text('add_count_' . $this->id, $this->count);
-						//update_text('add_dir_' . $this->id, scrub_out($file));
-						//flush();
-                        
-                        update_text('Adding file ('.$this->count.') : '.scrub_out($file));
-						$ticker = time();
-					} // update our current state
+                                    $this->count++;
+                                    if ( (time() > $ticker+1)) {
+                                        $file = str_replace(array('(',')','\''),'',$full_file);
+
+                                        update_text('Reading file ('.$this->count.') : '.scrub_out($file));
+                                        
+                                        $ticker = time();
+                                    } // update our current state
 
 				} // if it's not an m3u
 
@@ -630,10 +661,7 @@ class Catalog extends database_object {
 
 		// This should only happen on the last run
 		if ($path == $this->path) {
-			//update_text('add_count_' . $this->id, $this->count);
-			//update_text('add_dir_' . $this->id, scrub_out($file));
-			//flush();
-            update_text('Adding file ('.$this->count.') : '.scrub_out($file));
+                    update_text($this->count.' files read');
 		}
 
 
@@ -662,13 +690,42 @@ class Catalog extends database_object {
 		return $results;
 
 	} // get_album_ids
+        
+        /**
+	 * get_album_ids
+	 * This returns an array of ids of albums that have songs in this
+	 * catalog
+	 */
+	public function get_album_ids_with_empty_art() {
+
+		$id = Dba::escape($this->id);
+		$results = array();
+
+		$sql = "SELECT DISTINCT(song.album) 
+                        FROM `song` 
+                        WHERE `song`.`catalog` = '$id' AND
+                              `song`.`album` NOT IN (
+                                    SELECT object_id 
+                                    FROM image
+                                    WHERE size = 'original' AND
+                                    object_type = 'album'
+                                )";
+		$db_results = Dba::read($sql);
+
+		while ($r = Dba::fetch_assoc($db_results)) {
+			$results[] = $r['album'];
+		}
+
+		return $results;
+
+	} // get_album_ids_with_empty_art
 
 	/**
 	 * get_art
 	 * This runs through all of the needs art albums and trys
 	 * to find the art for them from the mp3s
 	 */
-	public function get_art($catalog_id=0,$all='') {
+	public function get_art($catalog_id=0, $all='') {
 
             // Make sure they've actually got methods
             $art_order = Config::get('art_order');
@@ -684,8 +741,11 @@ class Catalog extends database_object {
 
             update_text('Searching albums...');
 
-            if ($all) {
+            if ($all == 1) {
                 $albums = $this->get_album_ids();
+            } 
+            elseif($all == 'empty') {
+                $albums = $this->get_album_ids_with_empty_art();
             } else {
                 $albums = array_keys(self::$_art_albums);
             }
@@ -712,18 +772,60 @@ class Catalog extends database_object {
                 );
 
                 // Return results
-                $results = $art->gather($options,1,true);
+                $results = $art->gather($options, false, true);
 
                 if (count($results)) {
+                    
+                    //Get source with best quality
+                    $bestResult = array();
+                    $bestImage = '';
+                    foreach($results as $result) {
+                        
+                        $imageTmp = $art->get_from_source($result);
+                        
+                        //Don't try empty images
+                        if(empty($imageTmp) || !$imageTmp) {
+                            continue;
+                        }
+                        
+                        //Don't keep not images formats
+                        $newImg = imagecreatefromstring($imageTmp);
+                        if(!is_resource($newImg)) {
+                            continue;
+                        }
+
+                        //Don't keep images < 128px width
+                        $width = imagesx($newImg);
+                        if(!$width || $width < 128) {
+                            continue;
+                        }
+
+                        $bestResult = $result;
+                        $bestImage = $imageTmp;
+                        break;
+                    }
+
                     // Pull the string representation from the source
-                    $image = $art->get_from_source($results['0']);
-                    if (strlen($image) > '5') {
-                        $art->insert($image,$results['0']['mime']);
+                    //$image = $art->get_from_source($results['0']);
+                    if (strlen($bestImage) > 5) {
+                        
+                        //Sometimes inserting the file in DB makes a query too big
+                        $sql = "SHOW VARIABLES LIKE 'max_allowed_packet'";
+                        $db_results = Dba::read($sql); 
+                        $queryMaxSize = Dba::fetch_assoc($db_results);
+
+                        if( isset($queryMaxSize['Value']) && strlen($bestImage) > ( $queryMaxSize['Value'] - 200 ) ) {
+                            $bestImage = $art->generate_thumb($bestImage, array('width' => 275,'height' => 275), $bestResult['mime']);
+                            $bestResult['mime'] = $bestImage['thumb_mime'];
+                            $bestImage = $bestImage['thumb'];
+                        }
+
+                        $art->insert($bestImage, strtolower($bestResult['mime']) );
+                        
                         // If they've enabled resizing of images generate the thumbnail now
-                        if (Config::get('resize_images')) { 
-                            $thumb = $art->generate_thumb($image,array('width'=>275,'height'=>275),$results['0']['mime']); 
-                            if (is_array($thumb)) { $art->save_thumb($thumb['thumb'], $thumb['thumb_mime'], '275x275'); } 
-                        } 
+                        //if (Config::get('resize_images')) { 
+                        //    $thumb = $art->generate_thumb($bestImage, array('width' => 275,'height' => 275),$bestResult['mime']); 
+                        //    if (is_array($thumb)) { $art->save_thumb($thumb['thumb'], $thumb['thumb_mime'], '275x275'); } 
                     }
                     else {
                         debug_event('album_art','Image less then 5 chars, not inserting','3');
@@ -1259,7 +1361,27 @@ class Catalog extends database_object {
 
 		/* Get the songs and then insert them into the db */
 		$this->add_files($this->path,$type,0,$verbose);
+                
+                ksort($this->_songs); //Sort songs by modified time ASC
 
+                $i = 1;
+                $ticker = time();
+                foreach($this->_songs as $song_file) {
+                    
+                    $file_size = filesize($song_file);
+                    
+                    $this->insert_local_song($song_file,$file_size); 
+                    
+                    if ( (time() > $ticker+1)) {
+                        $file = str_replace(array('(',')','\''),'',$song_file);
+
+
+                        update_text('Adding file ('.$i.' / '.count($this->_songs).') : '.scrub_out($file));
+                        $ticker = time();
+                    } // update our current state
+                    $i++;
+                }
+                
 		// Foreach Playlists we found
 		foreach ($this->_playlists as $full_file) {
                     if ($this->import_m3u($full_file)) {

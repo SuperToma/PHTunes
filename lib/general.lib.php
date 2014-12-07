@@ -117,6 +117,16 @@ function unhtmlentities($string) {
 } //unhtmlentities
 
 /**
+ * 
+ * @param type $string
+ * @return string without accents
+ * 
+ */
+function removeAccents($string){
+    return strtr($string,'àáâãäçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ',
+                         'aaaaaceeeeiiiinooooouuuuyyAAAAACEEEEIIIINOOOOOUUUUY');
+}
+/**
  * format_bytes
  * Turns a size in bytes into a human-readable value
  */
